@@ -1,0 +1,191 @@
+{
+  "ruleChain": {
+    "additionalInfo": {
+      "description": ""
+    },
+    "name": "RPC uC Bleue",
+    "type": "CORE",
+    "firstRuleNodeId": null,
+    "root": false,
+    "debugMode": false,
+    "configuration": null,
+    "externalId": null
+  },
+  "metadata": {
+    "firstNodeIndex": 0,
+    "nodes": [
+      {
+        "additionalInfo": {
+          "description": null,
+          "layoutX": 332,
+          "layoutY": 148
+        },
+        "type": "org.thingsboard.rule.engine.filter.TbJsFilterNode",
+        "name": "Under Threshold",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "return msg.Temperature <= 24;"
+        },
+        "externalId": null
+      },
+      {
+        "additionalInfo": {
+          "description": null,
+          "layoutX": 640,
+          "layoutY": 67
+        },
+        "type": "org.thingsboard.rule.engine.action.TbCreateAlarmNode",
+        "name": "Create Alarm",
+        "debugMode": true,
+        "configuration": {
+          "alarmType": "Critical Temperature",
+          "alarmDetailsBuildJs": "var details = {};\nif (metadata.prevAlarmDetails) {\n    details = JSON.parse(metadata.prevAlarmDetails);\n}\nreturn details;",
+          "severity": "CRITICAL",
+          "propagate": true
+        },
+        "externalId": null
+      },
+      {
+        "additionalInfo": {
+          "layoutX": 638,
+          "layoutY": 251
+        },
+        "type": "org.thingsboard.rule.engine.action.TbClearAlarmNode",
+        "name": "Clear Alarm",
+        "debugMode": false,
+        "configuration": {
+          "alarmType": "Critical Temperature",
+          "alarmDetailsBuildJs": "var details = {};\nif (metadata.prevAlarmDetails) {\n    details = JSON.parse(metadata.prevAlarmDetails);\n}\nreturn details;"
+        },
+        "externalId": null
+      },
+      {
+        "additionalInfo": {
+          "description": null,
+          "layoutX": 892,
+          "layoutY": 61
+        },
+        "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
+        "name": "Status True",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "var newMsg = {};\nnewMsg.method = 'Blue';\nmsgType = 'RPC message';\nnewMsg.params = 'true';\nnewMsg.color = 'blue';\n\nreturn {msg: newMsg, metadata: metadata, msgType: msgType}; "
+        },
+        "externalId": null
+      },
+      {
+        "additionalInfo": {
+          "description": null,
+          "layoutX": 899,
+          "layoutY": 254
+        },
+        "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
+        "name": "Status False",
+        "debugMode": false,
+        "configuration": {
+          "jsScript": "var newMsg = {};\nnewMsg.method = 'Blue';\nmsgType = 'RPC message';\nnewMsg.params = 'false';\n\nreturn {msg: newMsg, metadata: metadata, msgType: msgType}; "
+        },
+        "externalId": null
+      },
+      {
+        "additionalInfo": {
+          "description": "",
+          "layoutX": 1397,
+          "layoutY": 55
+        },
+        "type": "org.thingsboard.rule.engine.rpc.TbSendRPCRequestNode",
+        "name": "Status True",
+        "debugMode": true,
+        "configuration": {
+          "timeoutInSeconds": 60
+        },
+        "externalId": null
+      },
+      {
+        "additionalInfo": {
+          "description": "",
+          "layoutX": 1396,
+          "layoutY": 253
+        },
+        "type": "org.thingsboard.rule.engine.rpc.TbSendRPCRequestNode",
+        "name": "Status False",
+        "debugMode": true,
+        "configuration": {
+          "timeoutInSeconds": 60
+        },
+        "externalId": null
+      },
+      {
+        "additionalInfo": {
+          "description": "",
+          "layoutX": 1156,
+          "layoutY": 58
+        },
+        "type": "org.thingsboard.rule.engine.filter.TbJsFilterNode",
+        "name": "Check RPC msg",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "return msgType == 'RPC message'; "
+        },
+        "externalId": null
+      },
+      {
+        "additionalInfo": {
+          "description": "",
+          "layoutX": 1153,
+          "layoutY": 255
+        },
+        "type": "org.thingsboard.rule.engine.filter.TbJsFilterNode",
+        "name": "Check RPC msg",
+        "debugMode": true,
+        "configuration": {
+          "jsScript": "return msgType == 'RPC message'; "
+        },
+        "externalId": null
+      }
+    ],
+    "connections": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "True"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "False"
+      },
+      {
+        "fromIndex": 1,
+        "toIndex": 3,
+        "type": "Created"
+      },
+      {
+        "fromIndex": 2,
+        "toIndex": 4,
+        "type": "Cleared"
+      },
+      {
+        "fromIndex": 3,
+        "toIndex": 7,
+        "type": "Success"
+      },
+      {
+        "fromIndex": 4,
+        "toIndex": 8,
+        "type": "Success"
+      },
+      {
+        "fromIndex": 7,
+        "toIndex": 5,
+        "type": "True"
+      },
+      {
+        "fromIndex": 8,
+        "toIndex": 6,
+        "type": "True"
+      }
+    ],
+    "ruleChainConnections": null
+  }
+}
