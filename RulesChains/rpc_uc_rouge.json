@@ -24,7 +24,7 @@
         "name": "Under Threshold",
         "debugMode": true,
         "configuration": {
-          "jsScript": "return msg.Temperature >= 27;"
+          "jsScript": "return msg.Temperature >= 25;"
         },
         "externalId": null
       },

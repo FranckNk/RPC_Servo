@@ -32,29 +32,48 @@ const int LED_PIN_ROUGE    = A4;
 
 Timer Temps;
 Timer Send;
-const char *FileName = "data.txt";
+const char *FileName = "log.txt";
 Servo myservo;  // create servo object to control a servo
 int pos = 0;    // variable to store the servo position
 
 void ActionnementServoLEDs(){
 	
-	if (DataRecu == "true")
+	if (DataRecu == "true"){
 		Valeur = 255;
-	else if(DataRecu == "false")
-		Valeur = 0;
-	else
-		Valeur = map(ceil(DataRecu.toInt()), 0, 100, 0, 255);
-	if (LEDColor == "Red")
-	{
-		analogWrite(LED_PIN_ROUGE, Valeur);
+		if (LEDColor == "Red")
+		{
+			for (pos = 0; pos <= 90; pos += 1)
+			{ // goes from 0 degrees to 180 degrees
+				// in steps of 1 degree
+				myservo.write(pos); // tell servo to go to position in variable 'pos'
+				delay(15);
+			}
+			analogWrite(LED_PIN_ROUGE, Valeur);
+			analogWrite(LED_PIN_BLEU, 0);
+		}
+		else if (LEDColor == "Blue")
+		{
+			for (pos = 0; pos <= 180; pos += 1)
+			{ // goes from 0 degrees to 180 degrees
+				// in steps of 1 degree
+				myservo.write(pos); // tell servo to go to position in variable 'pos'
+				delay(15);
+			}
+			analogWrite(LED_PIN_BLEU, Valeur);
+			analogWrite(LED_PIN_ROUGE, 0);
+		}
+	}
+	else if(DataRecu == "false"){
 		analogWrite(LED_PIN_BLEU, 0);
-	}
-	else if (LEDColor == "Blue")
-	{
-		analogWrite(LED_PIN_BLEU, Valeur);
 		analogWrite(LED_PIN_ROUGE, 0);
+		for (pos = 90; pos >= 0; pos -= 1)
+		{						// goes from 180 degrees to 0 degrees
+			myservo.write(pos); // tell servo to go to position in variable 'pos'
+			delay(15);			// waits 15 ms for the servo to reach the position
+		}
 	}
-	
+	LEDColor="";
+	DataRecu = "";
 	Payload = "";
 }
 
@@ -65,6 +84,7 @@ void SendMQTTFile(const char *namefile)
 	MQTTConnect(); // Branchement au broker MQTT
 	// *************** Récupération de chaque ligne dans le fichier. **********
 	File file = SD.open(namefile, FILE_READ);
+
 	while (file.available())
 	{
 		String Payload = file.readStringUntil('\n');
@@ -78,7 +98,7 @@ void SendMQTTFile(const char *namefile)
 	}
 	// On patiente une seconde de plus pour recevoir le message mqtt du serveur.
 	Timer Wait;
-	Wait.startTimer(1000);
+	Wait.startTimer(500);
 	while (!Wait.isTimerReady())
 	{
 		ClientMQTT.loop(); 
@@ -86,7 +106,6 @@ void SendMQTTFile(const char *namefile)
 	}
 	// On fait les actions nécessaires.
 	ActionnementServoLEDs();
-
 	file.close();
 
 	// Supprimer le fichier une fois terminé. En supposant l'envoi a été faite correctement.
@@ -95,7 +114,6 @@ void SendMQTTFile(const char *namefile)
 	WiFi.disconnect();
 	WiFi.end();
 	digitalWrite(LED_BUILTIN, LOW);
-	Send.startTimer(LimitSend);
 }
 
 void WriteFile()
@@ -105,7 +123,7 @@ void WriteFile()
 	sensors_event_t humidity, temp;
 	aht.getEvent(&humidity, &temp); // populate temp and humidity objects with fresh data
 
-	sprintf(Chaine, "{\"ts\":%.0f,\"values\":{\"Temperature\":%.3f,\"Humidite\":%.3f}}", (double)now.unixtime() * 1000, temp.temperature, humidity.relative_humidity);
+	sprintf(Chaine, "{\"ts\":%.0f,\"values\":{\"Temperature\":%.3f,\"Humidite\":%.3f}}", (double)(now.unixtime() + 10800)* 1000, temp.temperature, humidity.relative_humidity);
 
 	File file = SD.open(FileName, FILE_WRITE);
 	int Status = file.println(Chaine);
@@ -123,9 +141,10 @@ void WriteFile()
 
 void setup()
 {
+  	myservo.attach(6);  // attaches the servo on pin 9 to the servo object
+
 	Serial.begin(9600);
 	// while (!Serial); // wait for serial port to connect. Needed for native USB
-  	myservo.attach(9);  // attaches the servo on pin 9 to the servo object
 	Serial.println("Adafruit AHT10/AHT20 demo!");
 	if (!aht.begin())
 	{
@@ -151,6 +170,7 @@ void setup()
 		Serial.println("RTC lost power, let's set the time!");
 		rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 	}
+
 	Serial.print("Initializing SD card...");
 	if (!SD.begin(chipSelect))
 	{
@@ -159,12 +179,13 @@ void setup()
 		while (1)
 			delay(1000);
 	}
+	SD.remove(FileName);
 	Serial.println("card initialized.");
 	
 	// Suppression du fichier s'il existe deja.
-	SD.remove(FileName);
 	Temps.startTimer(LimitWrite);
 	Send.startTimer(LimitSend);
+
 }
 
 
@@ -174,6 +195,7 @@ void loop()
 	//{"TimeDate":2022-9-27 21:40:37,"Temperature":24.96,"Humidite":65.44}
 
 	// *************** Ecriture dans la carte SD ***************
+	
 	if (Temps.isTimerReady())
 	{
 		WriteFile();
@@ -185,6 +207,17 @@ void loop()
 		SendMQTTFile(FileName);
 		Send.startTimer(LimitSend);
 	}
+	/*
+		for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+		// in steps of 1 degree
+		myservo.write(pos);              // tell servo to go to position in variable 'pos'
+		delay(15);                       // waits 15 ms for the servo to reach the position
+	}
+	for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+		myservo.write(pos);              // tell servo to go to position in variable 'pos'
+		delay(15);                       // waits 15 ms for the servo to reach the position
+	}
+	*/
 }
 
 
